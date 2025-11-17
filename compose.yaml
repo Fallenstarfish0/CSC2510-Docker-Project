@@ -1,42 +1,36 @@
 services:
   db:
     container_name: postgres_db
-
-    # TODO: 
-    # define image (if our container is named postgres_db... i wonder... use 16 as the version.)
-    # define ports (postgres default port is 5432)
-    # define environment (POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB (can be found in the code)
-    # create and attach a volume to /var/lib/postgresql/data
-
-    # given: healthcheck
-    # basically just checks that postgres is up and ready
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: dockeruser
+      POSTGRES_PASSWORD: dockerpass
+      POSTGRES_DB: dockerdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U dockeruser -d dockerdb"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
   app:
-    # In case you were wondering, 
-    # since we aren't specifying an image for app, we're telling it 
-    # to look in the current directory for the build (from Dockerfile)
     build: .
     container_name: go_app
-    # if our DB is not healthy
-    # do not run
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: dockeruser
+      DB_PASSWORD: dockerpass
+      DB_NAME: dockerdb
+      PORT: 8080
+    ports:
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
-    #TODO:
-      # define environment variables
-      # (DB_HOST (the name of the service our db is in)
-      #, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, 
-      # and (this container's) PORT 8080)
 
-    # TODO: 
-      # set our app to run on port 8080
-
-
-# TODO: 
-# define a volume at the highest level
-# should be same name as the volume you defined for DB
+volumes:
+  postgres_data:
